@@ -197,7 +197,12 @@ public class ComPDFKitSDKPlugin extends BaseMethodChannelPlugin implements Plugi
                 }
             }
             @Override
-            public void onActivityCreated(Activity activity, Bundle bundle) {}
+            public void onActivityCreated(Activity activity, Bundle bundle) {
+                if (activity.getClass().getName().equals("com.compdfkit.tools.common.pdf.CPDFDocumentActivity")) {
+                    activity.getWindow().setFlags(WindowManager.LayoutParams.FLAG_SECURE,
+                            WindowManager.LayoutParams.FLAG_SECURE);
+                }
+            }
             @Override
             public void onActivityStarted(Activity activity) {}
             @Override
