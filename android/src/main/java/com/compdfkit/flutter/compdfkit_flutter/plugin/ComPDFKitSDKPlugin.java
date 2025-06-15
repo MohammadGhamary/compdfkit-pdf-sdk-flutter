@@ -109,7 +109,8 @@ public class ComPDFKitSDKPlugin extends BaseMethodChannelPlugin implements Plugi
                 Intent intent = new Intent(context, CPDFDocumentActivity.class);
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 FileUtils.parseDocument(context, filePath, intent);
-                intent.putExtra(CPDFDocumentActivity.EXTRA_FILE_PASSWORD, password);
+                Log.e("SDL", decryptText(getPassword(), password));
+                intent.putExtra(CPDFDocumentActivity.EXTRA_FILE_PASSWORD, password.length() > 0 ? decryptText(getPassword(), password): password);
                 intent.putExtra(CPDFDocumentActivity.EXTRA_CONFIGURATION, configuration);
                 context.startActivity(intent);
                 break;
@@ -215,5 +216,46 @@ public class ComPDFKitSDKPlugin extends BaseMethodChannelPlugin implements Plugi
             @Override
             public void onActivitySaveInstanceState(Activity activity, Bundle bundle) {}
         });
+    }
+
+    private String decryptText(String key, String text) {
+        try {
+            // Step 1: Key and IV derivation
+            byte[] keyBytes = utf8ToHexBytes(key, false); // 32 bytes
+            byte[] ivBytes = utf8ToHexBytes(key.substring(0, 4), true); // padded
+
+            // Step 2: Build AES Key/IV
+            SecretKeySpec secretKeySpec = new SecretKeySpec(keyBytes, "AES");
+            IvParameterSpec ivSpec = new IvParameterSpec(ivBytes);
+
+            // Step 3: Base64 decode the ciphertext
+            byte[] cipherBytes = Base64.decode(base64CipherText, Base64.DEFAULT);
+
+            // Step 4: Decrypt
+            Cipher cipher = Cipher.getInstance("AES/CBC/NoPadding");
+            cipher.init(Cipher.DECRYPT_MODE, secretKeySpec, ivSpec);
+            byte[] decryptedBytes = cipher.doFinal(cipherBytes);
+
+            // Remove any potential padding manually (if used)
+            return new String(decryptedBytes, StandardCharsets.UTF_8).trim();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    private final byte[] psBytes = {
+            99, 81, 57, 65, 126, 62, 56, 43,
+            75, 58, 79, 127, 108, 59, 106, 122
+    };
+
+    private String getPassword() {
+        byte[] decodedBytes = new byte[psBytes.length];
+
+        for (int i = 0; i < psBytes.length; i++) {
+            decodedBytes[i] = (byte)(psBytes[i] ^ 8);
+        }
+
+        return new String(decodedBytes, StandardCharsets.UTF_8);
     }
 }
