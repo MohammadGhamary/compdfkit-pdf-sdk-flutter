@@ -35,6 +35,8 @@ public class CPDFConstants {
 
     public static final String OPEN_DOCUMENT = "open_document";
 
+    public static final String CLOSE_DOCUMENT = "close_document";
+
     public static final String GET_TEMP_DIRECTORY = "get_temporary_directory";
     public static final String REMOVE_SIGN_FILE_LIST = "remove_sign_file_list";
 

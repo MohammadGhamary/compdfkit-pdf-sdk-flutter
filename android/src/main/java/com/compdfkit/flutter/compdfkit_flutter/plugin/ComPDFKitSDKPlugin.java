@@ -20,17 +20,20 @@ import static com.compdfkit.flutter.compdfkit_flutter.constants.CPDFConstants.Ch
 import static com.compdfkit.flutter.compdfkit_flutter.constants.CPDFConstants.ChannelMethod.SDK_BUILD_TAG;
 import static com.compdfkit.flutter.compdfkit_flutter.constants.CPDFConstants.ChannelMethod.SDK_VERSION_CODE;
 import static com.compdfkit.flutter.compdfkit_flutter.constants.CPDFConstants.ChannelMethod.SET_IMPORT_FONT_DIRECTORY;
+import static com.compdfkit.flutter.compdfkit_flutter.constants.CPDFConstants.ChannelMethod.CLOSE_DOCUMENT;
 
 import android.app.Activity;
-import android.content.Context;
+import android.app.Application;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.TextUtils;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
-
 import androidx.annotation.Nullable;
 import com.compdfkit.core.document.CPDFDocument;
 import com.compdfkit.core.document.CPDFSdk;
@@ -48,18 +51,27 @@ import java.io.File;
 import io.flutter.plugin.common.BinaryMessenger;
 import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
+import io.flutter.plugin.common.PluginRegistry;
 
 
 public class ComPDFKitSDKPlugin extends BaseMethodChannelPlugin implements PluginRegistry.ActivityResultListener {
+
     private static final int REQUEST_CODE = (ComPDFKitSDKPlugin.class.hashCode() + 43) & 0x0000ffff;
 
     private Activity activity;
-
+    private Application application;
     private MethodChannel.Result pendingResult;
+    private BinaryMessenger binaryMessenger;
+    private MethodChannel methodChannel;
 
     public ComPDFKitSDKPlugin(Activity activity, BinaryMessenger binaryMessenger) {
         super(activity, binaryMessenger);
         this.activity = activity;
+        this.application = activity.getApplication();
+        this.binaryMessenger = binaryMessenger;
+        this.methodChannel = new MethodChannel(binaryMessenger, "com.compdfkit.flutter.plugin");
+
+        registerActivityLifecycleCallbacks();
     }
 
     @Override
@@ -72,15 +84,15 @@ public class ComPDFKitSDKPlugin extends BaseMethodChannelPlugin implements Plugi
         switch (call.method) {
             case INIT_SDK:
                 String key = call.argument("key");
-                CPDFSdk.init(context, key, true, (code, msg) -> {
-                    Log.e("ComPDFKit-Plugin", "INIT_SDK: code:" + code + ", msg:" + msg);
-                });
+                CPDFSdk.init(context, key, true, (code, msg) ->
+                        Log.e("ComPDFKit-Plugin", "INIT_SDK: code:" + code + ", msg:" + msg)
+                );
                 break;
             case INIT_SDK_KEYS:
                 String androidLicenseKey = call.argument("androidOnlineLicense");
-                CPDFSdk.init(context, androidLicenseKey, false, (code, msg) -> {
-                    Log.e("ComPDFKit-Plugin", "INIT_SDK_KEYS: code:" + code + ", msg:" + msg);
-                });
+                CPDFSdk.init(context, androidLicenseKey, false, (code, msg) ->
+                        Log.e("ComPDFKit-Plugin", "INIT_SDK_KEYS: code:" + code + ", msg:" + msg)
+                );
                 break;
             case SDK_VERSION_CODE:
                 result.success(CPDFSdk.getSDKVersion());
@@ -118,16 +130,14 @@ public class ComPDFKitSDKPlugin extends BaseMethodChannelPlugin implements Plugi
                 String fileName = call.argument("file_name");
                 String mimeType = call.argument("mime_type");
                 String childDirectoryName = call.argument("child_directory_name");
-                String dir = Environment.DIRECTORY_DOWNLOADS ;
-                if (!TextUtils.isEmpty(childDirectoryName)){
+                String dir = Environment.DIRECTORY_DOWNLOADS;
+                if (!TextUtils.isEmpty(childDirectoryName)) {
                     dir += File.separator + childDirectoryName;
                 }
-                Uri uri = CUriUtil.createFileUri(context,
-                    dir,
-                    fileName, mimeType);
-                if (uri != null){
+                Uri uri = CUriUtil.createFileUri(context, dir, fileName, mimeType);
+                if (uri != null) {
                     result.success(uri.toString());
-                }else {
+                } else {
                     result.error("CREATE_URI_FAIL", "create uri fail", "");
                 }
                 break;
@@ -145,27 +155,27 @@ public class ComPDFKitSDKPlugin extends BaseMethodChannelPlugin implements Plugi
                 result.success(true);
                 break;
             default:
-                break;
+                result.notImplemented();
         }
     }
 
     @Override
     public boolean onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        if (requestCode == REQUEST_CODE && resultCode == Activity.RESULT_OK){
-            if(data != null && data.getData() != null){
+        if (requestCode == REQUEST_CODE && resultCode == Activity.RESULT_OK) {
+            if (data != null && data.getData() != null) {
                 Uri uri = data.getData();
                 CFileUtils.takeUriPermission(context, uri);
                 successResult(uri.toString());
             }
             return true;
-        } else if (requestCode == REQUEST_CODE && resultCode != Activity.RESULT_OK){
+        } else if (requestCode == REQUEST_CODE) {
             successResult(null);
         }
         return false;
     }
 
-    private void successResult(String uri){
-        if(pendingResult != null){
+    private void successResult(String uri) {
+        if (pendingResult != null) {
             pendingResult.success(uri);
         }
         clearPendingResult();
@@ -173,5 +183,31 @@ public class ComPDFKitSDKPlugin extends BaseMethodChannelPlugin implements Plugi
 
     private void clearPendingResult() {
         pendingResult = null;
+    }
+
+    private void registerActivityLifecycleCallbacks() {
+        application.registerActivityLifecycleCallbacks(new Application.ActivityLifecycleCallbacks() {
+            @Override
+            public void onActivityDestroyed(@NonNull Activity activity) {
+                if (activity.getClass().getName().equals("com.compdfkit.tools.common.pdf.CPDFDocumentActivity")) {
+                    new Handler(Looper.getMainLooper()).post(() -> {
+                        methodChannel.invokeMethod(CLOSE_DOCUMENT, null);
+                    });
+
+                }
+            }
+            @Override
+            public void onActivityCreated(Activity activity, Bundle bundle) {}
+            @Override
+            public void onActivityStarted(Activity activity) {}
+            @Override
+            public void onActivityResumed(Activity activity) {}
+            @Override
+            public void onActivityPaused(Activity activity) {}
+            @Override
+            public void onActivityStopped(Activity activity) {}
+            @Override
+            public void onActivitySaveInstanceState(Activity activity, Bundle bundle) {}
+        });
     }
 }
