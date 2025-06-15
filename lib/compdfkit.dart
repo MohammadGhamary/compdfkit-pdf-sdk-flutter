@@ -74,7 +74,17 @@ class ComPDFKit {
   ///     configuration:CPDFConfiguration())
   /// ```
   static void openDocument(String document,
-      {String? password, CPDFConfiguration? configuration}) async {
+      {String? password, CPDFConfiguration? configuration,
+       Function? onDocumentClosed}) async {
+
+    _methodChannel.setMethodCallHandler((call) async {
+      if (call.method == "close_document") {
+        if(onDocumentClosed != null){
+          await onDocumentClosed();
+        }
+      }
+    });
+
     await _methodChannel.invokeMethod('open_document', <String, dynamic>{
       'document': document,
       'password': password,
