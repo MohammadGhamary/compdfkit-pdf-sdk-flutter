@@ -3,69 +3,103 @@ package com.compdfkit.flutter.compdfkit_flutter.utils;
 import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import java.io.ByteArrayInputStream;
+import java.io.InputStreamReader;
+import java.io.BufferedReader;
 import java.nio.charset.StandardCharsets;
 import android.util.Base64;
 
-
 public class TextDecryptionUtils {
 
-    private static final byte[] psBytes = {
+    private static final byte[] psBytes = new byte[]{
             99, 81, 57, 65, 126, 62, 56, 43,
             75, 58, 79, 127, 108, 59, 106, 122
     };
 
-    private static String getPassword() {
-        byte[] decodedBytes = new byte[psBytes.length];
-
-        for (int i = 0; i < psBytes.length; i++) {
-            decodedBytes[i] = (byte)(psBytes[i] ^ 8);
-        }
-
-        return new String(decodedBytes, StandardCharsets.UTF_8);
+    public static String encryptTextWithDefaultPassword(String text) {
+        return encryptText(getPassword(), text);
     }
 
-    // Flutter-like utf8ToHex
-    private static String utf8ToHex(String input) {
-        StringBuilder sb = new StringBuilder();
-        for (byte b : input.getBytes(StandardCharsets.UTF_8)) {
-            sb.append(String.format("%02x", b));
-        }
-        return sb.toString();
-    }
-
-    // Add zero padding to make 32 hex chars (i.e. 16 bytes after utf8)
-    private static String utf8ToHex(String input, boolean havePadding) {
-        String hex = utf8ToHex(input);
-        if (havePadding) {
-            while (hex.length() < 32) hex += "0";
-            return hex.substring(0, 32);
-        }
-        return hex;
-    }
-
-    private static byte[] toUtf8BytesOfHex(String s) {
-        return utf8ToHex(s).getBytes(StandardCharsets.UTF_8);
-    }
-
-    public static String decrypt(String base64CipherText) {
+    public static String encryptText(String key, String text) {
         try {
-            String key = getPassword();
-            byte[] keyBytes = toUtf8BytesOfHex(key); // Same as utf8.encode(utf8ToHex(key)) in Flutter
-            byte[] ivBytes = utf8ToHex(key.substring(0, 4), true).getBytes(StandardCharsets.UTF_8);
+            String keyString = utf8ToHex(key, false);
+            byte[] keyBytes = keyString.getBytes(StandardCharsets.UTF_8);
 
-            SecretKeySpec secretKeySpec = new SecretKeySpec(keyBytes, "AES");
+            String ivString = utf8ToHex(key.substring(0, 4), true);
+            byte[] ivBytes = ivString.getBytes(StandardCharsets.UTF_8);
+
+            if (keyBytes.length != 32) {
+                throw new IllegalArgumentException("Key must be 256 bits (32 bytes).");
+            }
+
+            SecretKeySpec secretKey = new SecretKeySpec(keyBytes, "AES");
             IvParameterSpec ivSpec = new IvParameterSpec(ivBytes);
 
-            Cipher cipher = Cipher.getInstance("AES/CBC/NoPadding");
-            cipher.init(Cipher.DECRYPT_MODE, secretKeySpec, ivSpec);
+            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+            cipher.init(Cipher.ENCRYPT_MODE, secretKey, ivSpec);
 
-            byte[] cipherBytes = Base64.decode(base64CipherText, Base64.DEFAULT);
-            byte[] decryptedBytes = cipher.doFinal(cipherBytes);
+            byte[] encryptedBytes = cipher.doFinal(text.getBytes(StandardCharsets.UTF_8));
+            return Base64.encodeToString(encryptedBytes, Base64.DEFAULT);
 
-            return new String(decryptedBytes, StandardCharsets.UTF_8).trim();
-        }catch (Exception e){
-            e.printStackTrace();
-            return "";
+        } catch (Exception e) {
+            return null;
         }
+    }
+
+    public static String decryptTextWithDefaultPassword(String cipherText) {
+        try {
+            String key = getPassword();
+            String keyString = utf8ToHex(key, false);
+            String ivString = utf8ToHex(key.substring(0, 4), true);
+
+            byte[] keyBytes = keyString.getBytes(StandardCharsets.UTF_8);
+            byte[] ivBytes = ivString.getBytes(StandardCharsets.UTF_8);
+            byte[] cipherBytes = Base64.decode(cipherText, Base64.DEFAULT);
+
+            SecretKeySpec secretKey = new SecretKeySpec(keyBytes, "AES");
+            IvParameterSpec ivSpec = new IvParameterSpec(ivBytes);
+
+            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+            cipher.init(Cipher.DECRYPT_MODE, secretKey, ivSpec);
+
+            byte[] decryptedBytes = cipher.doFinal(cipherBytes);
+            ByteArrayInputStream byteStream = new ByteArrayInputStream(decryptedBytes);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(byteStream, StandardCharsets.UTF_8));
+            StringBuilder result = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                result.append(line);
+            }
+
+            return result.toString();
+
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private static String utf8ToHex(String str, boolean havePadding) {
+        StringBuilder hexResult = new StringBuilder();
+
+        for (char ch : str.toCharArray()) {
+            byte[] utf8Bytes = String.valueOf(ch).getBytes(StandardCharsets.UTF_8);
+            for (byte b : utf8Bytes) {
+                String hex = String.format("%02x", b);
+                if (havePadding) {
+                    hex = "00" + hex;
+                }
+                hexResult.append(hex);
+            }
+        }
+
+        return hexResult.toString();
+    }
+
+    private static String getPassword() {
+        byte[] bytes = new byte[psBytes.length];
+        for (int i = 0; i < psBytes.length; i++) {
+            bytes[i] = (byte) (psBytes[i] ^ 8);
+        }
+        return new String(bytes, StandardCharsets.UTF_8);
     }
 }
