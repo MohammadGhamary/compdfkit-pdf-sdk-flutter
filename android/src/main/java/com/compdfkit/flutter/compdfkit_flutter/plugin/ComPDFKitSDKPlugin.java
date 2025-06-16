@@ -227,7 +227,7 @@ public class ComPDFKitSDKPlugin extends BaseMethodChannelPlugin implements Plugi
         });
     }
 
-    public static byte[] utf8ToHexBytes(String input, boolean havePadding) {
+    private byte[] utf8ToHexBytes(String input, boolean havePadding) {
         StringBuilder hex = new StringBuilder();
         for (byte b : input.getBytes(StandardCharsets.UTF_8)) {
             hex.append(String.format("%02x", b));
