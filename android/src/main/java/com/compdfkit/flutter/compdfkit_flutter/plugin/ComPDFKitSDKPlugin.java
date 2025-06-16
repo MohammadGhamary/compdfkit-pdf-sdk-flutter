@@ -33,6 +33,13 @@ import android.os.Looper;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.WindowManager;
+import android.util.Base64;
+
+import javax.crypto.Cipher;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
+
+import java.nio.charset.StandardCharsets;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
