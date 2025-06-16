@@ -227,18 +227,21 @@ public class ComPDFKitSDKPlugin extends BaseMethodChannelPlugin implements Plugi
         });
     }
 
-    private byte[] utf8ToHexBytes(String input, boolean padded) {
-        StringBuilder hexBuilder = new StringBuilder();
+    public static byte[] utf8ToHexBytes(String input, boolean havePadding) {
+        StringBuilder hex = new StringBuilder();
         for (byte b : input.getBytes(StandardCharsets.UTF_8)) {
-            hexBuilder.append(String.format("%02x", b));
+            hex.append(String.format("%02x", b));
         }
 
-        // Pad with zero if needed (like Flutter's havePadding=true)
-        if (padded && hexBuilder.length() % 2 != 0) {
-            hexBuilder.append("0");
+        if (havePadding) {
+            // pad to 32 characters (16 bytes)
+            while (hex.length() < 32) {
+                hex.append("0");
+            }
+            hex.setLength(32);
         }
 
-        return hexBuilder.toString().getBytes(StandardCharsets.UTF_8);
+        return hexStringToBytes(hex.toString());
     }
 
     private String decryptText(String key, String text) {
