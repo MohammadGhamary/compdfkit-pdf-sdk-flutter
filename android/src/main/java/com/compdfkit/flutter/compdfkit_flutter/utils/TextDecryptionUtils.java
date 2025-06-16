@@ -64,6 +64,7 @@ public class TextDecryptionUtils {
 
             return new String(decryptedBytes, StandardCharsets.UTF_8).trim();
         }catch (Exception e){
+            e.printStackTrace();
             return "";
         }
     }
