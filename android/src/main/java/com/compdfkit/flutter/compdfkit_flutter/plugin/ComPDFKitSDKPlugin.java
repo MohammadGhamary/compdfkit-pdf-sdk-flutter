@@ -225,6 +225,20 @@ public class ComPDFKitSDKPlugin extends BaseMethodChannelPlugin implements Plugi
         });
     }
 
+    private byte[] utf8ToHexBytes(String input, boolean padded) {
+        StringBuilder hexBuilder = new StringBuilder();
+        for (byte b : input.getBytes(StandardCharsets.UTF_8)) {
+            hexBuilder.append(String.format("%02x", b));
+        }
+
+        // Pad with zero if needed (like Flutter's havePadding=true)
+        if (padded && hexBuilder.length() % 2 != 0) {
+            hexBuilder.append("0");
+        }
+
+        return hexBuilder.toString().getBytes(StandardCharsets.UTF_8);
+    }
+
     private String decryptText(String key, String text) {
         try {
             // Step 1: Key and IV derivation
@@ -236,7 +250,7 @@ public class ComPDFKitSDKPlugin extends BaseMethodChannelPlugin implements Plugi
             IvParameterSpec ivSpec = new IvParameterSpec(ivBytes);
 
             // Step 3: Base64 decode the ciphertext
-            byte[] cipherBytes = Base64.decode(base64CipherText, Base64.DEFAULT);
+            byte[] cipherBytes = Base64.decode(text, Base64.DEFAULT);
 
             // Step 4: Decrypt
             Cipher cipher = Cipher.getInstance("AES/CBC/NoPadding");
