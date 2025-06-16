@@ -21,8 +21,7 @@ import static com.compdfkit.flutter.compdfkit_flutter.constants.CPDFConstants.Ch
 import static com.compdfkit.flutter.compdfkit_flutter.constants.CPDFConstants.ChannelMethod.SDK_VERSION_CODE;
 import static com.compdfkit.flutter.compdfkit_flutter.constants.CPDFConstants.ChannelMethod.SET_IMPORT_FONT_DIRECTORY;
 import static com.compdfkit.flutter.compdfkit_flutter.constants.CPDFConstants.ChannelMethod.CLOSE_DOCUMENT;
-
-import static com.compdfkit.flutter.compdfkit_flutter.utils.DecyptionUtils;
+import com.compdfkit.flutter.compdfkit_flutter.utils.TextDecryptionUtils;
 
 import android.app.Activity;
 import android.app.Application;
@@ -113,7 +112,7 @@ public class ComPDFKitSDKPlugin extends BaseMethodChannelPlugin implements Plugi
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 FileUtils.parseDocument(context, filePath, intent);
                 Log.e("SDL3", DecyptionUtils.decrypt(password) + "");
-                intent.putExtra(CPDFDocumentActivity.EXTRA_FILE_PASSWORD, password.length() > 0 ? DecyptionUtils.decrypt(password): password);
+                intent.putExtra(CPDFDocumentActivity.EXTRA_FILE_PASSWORD, password.length() > 0 ? TextDecryptionUtils.decrypt(password): password);
                 intent.putExtra(CPDFDocumentActivity.EXTRA_CONFIGURATION, configuration);
                 context.startActivity(intent);
                 break;
