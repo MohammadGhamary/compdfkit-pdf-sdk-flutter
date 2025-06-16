@@ -111,7 +111,6 @@ public class ComPDFKitSDKPlugin extends BaseMethodChannelPlugin implements Plugi
                 Intent intent = new Intent(context, CPDFDocumentActivity.class);
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 FileUtils.parseDocument(context, filePath, intent);
-                Log.e("SDL3", TextDecryptionUtils.decryptTextWithDefaultPassword(password));
                 intent.putExtra(CPDFDocumentActivity.EXTRA_FILE_PASSWORD, !password.isEmpty() ? TextDecryptionUtils.decryptTextWithDefaultPassword(password): password);
                 intent.putExtra(CPDFDocumentActivity.EXTRA_CONFIGURATION, configuration);
                 context.startActivity(intent);
