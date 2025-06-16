@@ -47,7 +47,7 @@ public class TextDecryptionUtils {
         return utf8ToHex(s).getBytes(StandardCharsets.UTF_8);
     }
 
-    public static String decrypt(String base64CipherText) throws Exception {
+    public static String decrypt(String base64CipherText) {
         try {
             String key = getPassword();
             byte[] keyBytes = toUtf8BytesOfHex(key); // Same as utf8.encode(utf8ToHex(key)) in Flutter
