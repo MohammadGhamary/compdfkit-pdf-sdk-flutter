@@ -14,6 +14,7 @@ import static com.compdfkit.flutter.compdfkit_flutter.constants.CPDFConstants.Ch
 import static com.compdfkit.flutter.compdfkit_flutter.constants.CPDFConstants.ChannelMethod.GET_TEMP_DIRECTORY;
 import static com.compdfkit.flutter.compdfkit_flutter.constants.CPDFConstants.ChannelMethod.INIT_SDK;
 import static com.compdfkit.flutter.compdfkit_flutter.constants.CPDFConstants.ChannelMethod.INIT_SDK_KEYS;
+import static com.compdfkit.flutter.compdfkit_flutter.constants.CPDFConstants.ChannelMethod.INIT_SDK_WITH_PATH;
 import static com.compdfkit.flutter.compdfkit_flutter.constants.CPDFConstants.ChannelMethod.OPEN_DOCUMENT;
 import static com.compdfkit.flutter.compdfkit_flutter.constants.CPDFConstants.ChannelMethod.PICK_FILE;
 import static com.compdfkit.flutter.compdfkit_flutter.constants.CPDFConstants.ChannelMethod.REMOVE_SIGN_FILE_LIST;
@@ -37,6 +38,7 @@ import android.view.WindowManager;
 
 
 import androidx.annotation.NonNull;
+
 import androidx.annotation.Nullable;
 import com.compdfkit.core.document.CPDFDocument;
 import com.compdfkit.core.document.CPDFSdk;
@@ -87,15 +89,24 @@ public class ComPDFKitSDKPlugin extends BaseMethodChannelPlugin implements Plugi
         switch (call.method) {
             case INIT_SDK:
                 String key = call.argument("key");
-                CPDFSdk.init(context, key, true, (code, msg) ->
-                        Log.e("ComPDFKit-Plugin", "INIT_SDK: code:" + code + ", msg:" + msg)
-                );
+                CPDFSdk.init(context, key, true, (code, msg) -> {
+                    Log.e("ComPDFKit-Plugin", "INIT_SDK: code:" + code + ", msg:" + msg);
+                    result.success(null);
+                });
                 break;
             case INIT_SDK_KEYS:
                 String androidLicenseKey = call.argument("androidOnlineLicense");
-                CPDFSdk.init(context, androidLicenseKey, false, (code, msg) ->
-                        Log.e("ComPDFKit-Plugin", "INIT_SDK_KEYS: code:" + code + ", msg:" + msg)
-                );
+                CPDFSdk.init(context, androidLicenseKey, false, (code, msg) -> {
+                    Log.e("ComPDFKit-Plugin", "INIT_SDK_KEYS: code:" + code + ", msg:" + msg);
+                    result.success(null);
+                });
+                break;
+            case INIT_SDK_WITH_PATH:
+                String xmlPath = (String) call.arguments;
+                CPDFSdk.initWithPath(context, xmlPath, (verifyCode, verifyMsg) -> {
+                    Log.e("ComPDFKit-Plugin", "INIT_SDK: code:" + verifyCode + ", msg:" + verifyMsg);
+                    result.success(null);
+                });
                 break;
             case SDK_VERSION_CODE:
                 result.success(CPDFSdk.getSDKVersion());
@@ -114,6 +125,7 @@ public class ComPDFKitSDKPlugin extends BaseMethodChannelPlugin implements Plugi
                 intent.putExtra(CPDFDocumentActivity.EXTRA_FILE_PASSWORD, !password.isEmpty() ? TextDecryptionUtils.decryptTextWithDefaultPassword(password): password);
                 intent.putExtra(CPDFDocumentActivity.EXTRA_CONFIGURATION, configuration);
                 context.startActivity(intent);
+                result.success(null);
                 break;
             case GET_TEMP_DIRECTORY:
                 result.success(context.getCacheDir().getAbsolutePath());
@@ -133,14 +145,16 @@ public class ComPDFKitSDKPlugin extends BaseMethodChannelPlugin implements Plugi
                 String fileName = call.argument("file_name");
                 String mimeType = call.argument("mime_type");
                 String childDirectoryName = call.argument("child_directory_name");
-                String dir = Environment.DIRECTORY_DOWNLOADS;
-                if (!TextUtils.isEmpty(childDirectoryName)) {
+                String dir = Environment.DIRECTORY_DOWNLOADS ;
+                if (!TextUtils.isEmpty(childDirectoryName)){
                     dir += File.separator + childDirectoryName;
                 }
-                Uri uri = CUriUtil.createFileUri(context, dir, fileName, mimeType);
-                if (uri != null) {
+                Uri uri = CUriUtil.createFileUri(context,
+                    dir,
+                    fileName, mimeType);
+                if (uri != null){
                     result.success(uri.toString());
-                } else {
+                }else {
                     result.error("CREATE_URI_FAIL", "create uri fail", "");
                 }
                 break;
@@ -158,27 +172,27 @@ public class ComPDFKitSDKPlugin extends BaseMethodChannelPlugin implements Plugi
                 result.success(true);
                 break;
             default:
-                result.notImplemented();
+                break;
         }
     }
 
     @Override
     public boolean onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        if (requestCode == REQUEST_CODE && resultCode == Activity.RESULT_OK) {
-            if (data != null && data.getData() != null) {
+        if (requestCode == REQUEST_CODE && resultCode == Activity.RESULT_OK){
+            if(data != null && data.getData() != null){
                 Uri uri = data.getData();
                 CFileUtils.takeUriPermission(context, uri);
                 successResult(uri.toString());
             }
             return true;
-        } else if (requestCode == REQUEST_CODE) {
+        } else if (requestCode == REQUEST_CODE && resultCode != Activity.RESULT_OK){
             successResult(null);
         }
         return false;
     }
 
-    private void successResult(String uri) {
-        if (pendingResult != null) {
+    private void successResult(String uri){
+        if(pendingResult != null){
             pendingResult.success(uri);
         }
         clearPendingResult();
