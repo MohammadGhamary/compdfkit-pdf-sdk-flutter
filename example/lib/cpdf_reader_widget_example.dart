@@ -6,7 +6,6 @@
 // This notice may not be removed from this file.
 
 import 'package:compdfkit_flutter/configuration/cpdf_configuration.dart';
-import 'package:compdfkit_flutter/configuration/cpdf_options.dart';
 import 'package:flutter/material.dart';
 
 import 'cpdf_reader_page.dart';
@@ -20,11 +19,10 @@ class CPDFReaderWidgetExample extends StatelessWidget {
     return CPDFReaderPage(
       title: 'CPDFReaderWidget Example',
       documentPath: documentPath,
-      configuration: CPDFConfiguration(
-        toolbarConfig: const CPDFToolbarConfig(
-          iosLeftBarAvailableActions: [CPDFToolbarAction.thumbnail],
-        ),
-      ),
+      configuration: CPDFConfiguration(),
+      onIOSClickBackPressed: (){
+        Navigator.pop(context);
+      },
     );
   }
 }

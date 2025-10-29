@@ -66,7 +66,7 @@ class _CPDFReaderPageState extends State<CPDFReaderPage> {
     return Scaffold(
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
-        title: Text(widget.title),
+        title: Text(widget.title, style: Theme.of(context).textTheme.titleSmall,),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () async {
@@ -94,25 +94,25 @@ class _CPDFReaderPageState extends State<CPDFReaderPage> {
 
   Widget _buildPDFReader(){
     return CPDFReaderWidget(
-      document: widget.documentPath,
-      password: widget.password,
-      configuration: widget.configuration,
-      onCreated: (controller) {
-        setState(() {
-          _controller = controller;
-        });
-        widget.onCreated?.call(controller);
-      },
-      onPageChanged: widget.onPageChanged,
-      onSaveCallback: widget.onSaveCallback,
-      onFillScreenChanged: widget.onFillScreenChanged,
-      onIOSClickBackPressed: widget.onIOSClickBackPressed,
-      onPageEditDialogBackPress: () {
-        debugPrint('CPDFReaderWidget: onPageEditDialogBackPress');
-      },
-      onTapMainDocAreaCallback: (){
-        widget.onTapMainDocAreaCallback?.call();
-      }
+        document: widget.documentPath,
+        password: widget.password,
+        configuration: widget.configuration,
+        onCreated: (controller) {
+          setState(() {
+            _controller = controller;
+          });
+          widget.onCreated?.call(controller);
+        },
+        onPageChanged: widget.onPageChanged,
+        onSaveCallback: widget.onSaveCallback,
+        onFillScreenChanged: widget.onFillScreenChanged,
+        onIOSClickBackPressed: widget.onIOSClickBackPressed,
+        onPageEditDialogBackPress: () {
+          debugPrint('CPDFReaderWidget: onPageEditDialogBackPress');
+        },
+        onTapMainDocAreaCallback: (){
+          widget.onTapMainDocAreaCallback?.call();
+        }
     );
   }
 
